@@ -1,13 +1,15 @@
 from telegram import (
-    InlineQueryResultPhoto,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup
+    InlineQueryResultArticle,
+    InputTextMessageContent
 )
 
 from telegram.ext import ContextTypes
 
 from commands.movie import (
-    search_content
+    search_content,
+    get_trailer,
+    get_watch_url,
+    get_similar_url
 )
 
 import uuid
@@ -87,6 +89,8 @@ async def inline_search(update,
             if not overview:
                 overview = "No description."
 
+            media_id = item["id"]
+
             poster_path = item.get(
                 "poster_path"
             )
@@ -101,24 +105,27 @@ async def inline_search(update,
             else:
 
                 poster_url = (
-                    "https://via.placeholder.com/500x750?text=No+Image"
+                    "https://via.placeholder.com/300x450"
                 )
 
-            tmdb_id = item.get("id")
-
-            tmdb_url = (
-                f"https://www.themoviedb.org/"
+            trailer_url = get_trailer(
+                media_type,
+                media_id
             )
 
-            if media_type == "movie":
+            watch_url = get_watch_url(
+                media_type,
+                media_id
+            )
 
-                tmdb_url += f"movie/{tmdb_id}"
+            similar_url = get_similar_url(
+                media_type,
+                media_id
+            )
 
-            else:
+            text = f"""
+<a href="{poster_url}">‎</a>
 
-                tmdb_url += f"tv/{tmdb_id}"
-
-            caption = f"""
 <b>{title}</b>
 
 {media_label}
@@ -128,54 +135,39 @@ async def inline_search(update,
 📅 {release}
 
 📖 {overview}
+
+🎬 Trailer:
+{trailer_url if trailer_url else "No disponible"}
+
+📺 Watch:
+{watch_url}
+
+🎲 Similar:
+{similar_url}
 """
-
-            buttons = [
-
-                [
-                    InlineKeyboardButton(
-                        "🍿 TMDB",
-                        url=tmdb_url
-                    )
-                ],
-
-                [
-                    InlineKeyboardButton(
-                        "🔎 Buscar Trailer",
-                        url=(
-                            "https://www.youtube.com/results"
-                            f"?search_query={title}+trailer"
-                        )
-                    )
-                ]
-            ]
-
-            markup = InlineKeyboardMarkup(
-                buttons
-            )
 
             inline_results.append(
 
-                InlineQueryResultPhoto(
+                InlineQueryResultArticle(
 
                     id=str(uuid.uuid4()),
-
-                    photo_url=poster_url,
-
-                    thumbnail_url=poster_url,
 
                     title=title,
 
                     description=(
                         f"{media_label} • "
-                        f"{release}"
+                        f"{release} • "
+                        f"{rating}/10"
                     ),
 
-                    caption=caption,
+                    thumbnail_url=poster_url,
 
-                    parse_mode="HTML",
-
-                    reply_markup=markup
+                    input_message_content=(
+                        InputTextMessageContent(
+                            message_text=text,
+                            parse_mode="HTML"
+                        )
+                    )
                 )
             )
 
