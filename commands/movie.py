@@ -91,7 +91,7 @@ def get_similar_url(media_type, media_id):
 
     return (
         f"https://www.themoviedb.org/"
-        f"{media_type}/{media_id}/recommendations"
+        f"{media_type}/{media_id}"
     )
 
 
