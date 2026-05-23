@@ -20,64 +20,73 @@ async def inline_search(update,
     if not query:
         return
 
-    results = search_content(query)
+    try:
 
-    inline_results = []
+        results = search_content(query)
 
-    for item in results[:10]:
+        inline_results = []
 
-        media_type = item.get(
-            "media_type"
-        )
+        for item in results[:10]:
 
-        if media_type not in [
-            "movie",
-            "tv"
-        ]:
-            continue
-
-        if media_type == "movie":
-
-            title = item.get(
-                "title",
-                "Unknown"
+            media_type = item.get(
+                "media_type"
             )
 
-            release = item.get(
-                "release_date",
-                "?"
+            if media_type not in [
+                "movie",
+                "tv"
+            ]:
+                continue
+
+            # MOVIES
+
+            if media_type == "movie":
+
+                title = item.get(
+                    "title",
+                    "Unknown"
+                )
+
+                release = item.get(
+                    "release_date",
+                    "?"
+                )
+
+                media_label = "🎬 Movie"
+
+            # TV
+
+            else:
+
+                title = item.get(
+                    "name",
+                    "Unknown"
+                )
+
+                release = item.get(
+                    "first_air_date",
+                    "?"
+                )
+
+                media_label = "📺 TV"
+
+            rating = round(
+                item.get(
+                    "vote_average",
+                    0
+                ),
+                1
             )
 
-            media_label = "🎬 Movie"
-
-        else:
-
-            title = item.get(
-                "name",
-                "Unknown"
+            overview = item.get(
+                "overview",
+                "No description."
             )
 
-            release = item.get(
-                "first_air_date",
-                "?"
-            )
+            if not overview:
+                overview = "No description."
 
-            media_label = "📺 TV"
-
-        rating = round(
-            item.get(
-                "vote_average",
-                0
-            ),
-            1
-        )
-
-        overview = item.get(
-            "overview",
-            "No description."
-        )
-
-        text = f"""
+            text = f"""
 <b>{title}</b>
 
 {media_label}
@@ -89,29 +98,34 @@ async def inline_search(update,
 📖 {overview}
 """
 
-        inline_results.append(
+            inline_results.append(
 
-            InlineQueryResultArticle(
+                InlineQueryResultArticle(
 
-                id=str(uuid.uuid4()),
+                    id=str(uuid.uuid4()),
 
-                title=title,
+                    title=title,
 
-                description=(
-                    f"{media_label} • "
-                    f"{release}"
-                ),
+                    description=(
+                        f"{media_label} • "
+                        f"{release}"
+                    ),
 
-                input_message_content=(
-                    InputTextMessageContent(
-                        message_text=text,
-                        parse_mode="HTML"
+                    input_message_content=(
+                        InputTextMessageContent(
+                            message_text=text,
+                            parse_mode="HTML"
+                        )
                     )
                 )
             )
+
+        await update.inline_query.answer(
+            inline_results,
+            cache_time=1
         )
 
-    await update.inline_query.answer(
-        inline_results,
-        cache_time=1
-    )
+    except Exception as e:
+
+        print("INLINE ERROR:")
+        print(e)
