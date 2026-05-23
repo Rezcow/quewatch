@@ -1,6 +1,8 @@
 from telegram import (
     InlineQueryResultArticle,
-    InputTextMessageContent
+    InputTextMessageContent,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup
 )
 
 from telegram.ext import ContextTypes
@@ -89,6 +91,15 @@ async def inline_search(update,
             if not overview:
                 overview = "No description."
 
+            # SHORT OVERVIEW
+
+            if len(overview) > 220:
+
+                overview = (
+                    overview[:220]
+                    + "..."
+                )
+
             media_id = item["id"]
 
             poster_path = item.get(
@@ -123,6 +134,8 @@ async def inline_search(update,
                 media_id
             )
 
+            # MESSAGE
+
             text = f"""
 <a href="{poster_url}">‎</a>
 
@@ -135,16 +148,37 @@ async def inline_search(update,
 📅 {release}
 
 📖 {overview}
-
-🎬 Trailer:
-{trailer_url if trailer_url else "No disponible"}
-
-📺 Watch:
-{watch_url}
-
-🎲 Similar:
-{similar_url}
 """
+
+            # BUTTONS
+
+            buttons = []
+
+            if trailer_url:
+
+                buttons.append([
+                    InlineKeyboardButton(
+                        "🎬 Trailer",
+                        url=trailer_url
+                    )
+                ])
+
+            buttons.append([
+
+                InlineKeyboardButton(
+                    "📺 Watch",
+                    url=watch_url
+                ),
+
+                InlineKeyboardButton(
+                    "🎲 Similar",
+                    url=similar_url
+                )
+            ])
+
+            markup = InlineKeyboardMarkup(
+                buttons
+            )
 
             inline_results.append(
 
@@ -161,6 +195,8 @@ async def inline_search(update,
                     ),
 
                     thumbnail_url=poster_url,
+
+                    reply_markup=markup,
 
                     input_message_content=(
                         InputTextMessageContent(
