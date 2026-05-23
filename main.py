@@ -12,15 +12,35 @@ from telegram import (
 from dotenv import load_dotenv
 from commands.movie import movie
 
+from flask import Flask
+from threading import Thread
+
 import os
 
 load_dotenv()
+
+# FLASK APP
+
+flask_app = Flask(__name__)
 
 TOKEN = os.getenv("BOT_TOKEN")
 
 TRAKT_CLIENT_ID = os.getenv(
     "TRAKT_CLIENT_ID"
 )
+
+
+@flask_app.route("/")
+def home():
+    return "QueWatch Online"
+
+
+def run_web():
+
+    flask_app.run(
+        host="0.0.0.0",
+        port=10000
+    )
 
 
 # START
@@ -106,6 +126,10 @@ app.add_handler(
     )
 )
 
+
+# START FLASK THREAD
+
+Thread(target=run_web).start()
 
 print("QueWatch iniciado...")
 
