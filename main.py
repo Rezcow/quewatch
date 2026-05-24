@@ -99,4 +99,4 @@ print(
 
 print("QueWatch iniciado...")
 
-app.run_polling()
+input("TEST MODE")
