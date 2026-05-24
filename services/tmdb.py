@@ -14,13 +14,13 @@ TMDB_API = os.getenv(
 
 def search_content(query):
 
-    all_results = []
-
     url = (
         "https://api.themoviedb.org/3/search/multi"
     )
 
-    # ENGLISH SEARCH FIRST
+    all_results = {}
+
+    # ENGLISH SEARCH
 
     params_en = {
         "api_key": TMDB_API,
@@ -35,44 +35,10 @@ def search_content(query):
 
     data_en = response_en.json()
 
-    results_en = data_en.get(
+    for item in data_en.get(
         "results",
         []
-    )
-
-    all_results.extend(
-        results_en
-    )
-
-    # SPANISH FALLBACK
-
-    params_es = {
-        "api_key": TMDB_API,
-        "query": query,
-        "language": "es-ES"
-    }
-
-    response_es = requests.get(
-        url,
-        params=params_es
-    )
-
-    data_es = response_es.json()
-
-    results_es = data_es.get(
-        "results",
-        []
-    )
-
-    all_results.extend(
-        results_es
-    )
-
-    # REMOVE DUPLICATES
-
-    unique = {}
-
-    for item in all_results:
+    ):
 
         media_type = item.get(
             "media_type"
@@ -89,12 +55,51 @@ def search_content(query):
             f"{item.get('id')}"
         )
 
-        if unique_key not in unique:
+        all_results[unique_key] = item
 
-            unique[unique_key] = item
+    # SPANISH SEARCH
+    # OVERWRITE ENGLISH RESULTS
+    # SO WE KEEP SPANISH TITLES
+
+    params_es = {
+        "api_key": TMDB_API,
+        "query": query,
+        "language": "es-ES"
+    }
+
+    response_es = requests.get(
+        url,
+        params=params_es
+    )
+
+    data_es = response_es.json()
+
+    for item in data_es.get(
+        "results",
+        []
+    ):
+
+        media_type = item.get(
+            "media_type"
+        )
+
+        if media_type not in [
+            "movie",
+            "tv"
+        ]:
+            continue
+
+        unique_key = (
+            f"{media_type}_"
+            f"{item.get('id')}"
+        )
+
+        # SPANISH REPLACES ENGLISH
+
+        all_results[unique_key] = item
 
     filtered = list(
-        unique.values()
+        all_results.values()
     )
 
     # SMART SORT
@@ -127,8 +132,6 @@ def search_content(query):
 
         points = 0
 
-        # EXACT MATCH
-
         if query_lower == title:
 
             points += 1000
@@ -136,8 +139,6 @@ def search_content(query):
         if query_lower == original:
 
             points += 1000
-
-        # CONTAINS QUERY
 
         if query_lower in title:
 
@@ -147,11 +148,7 @@ def search_content(query):
 
             points += 500
 
-        # POPULARITY
-
         points += popularity
-
-        # VOTES
 
         points += (
             vote_count / 100
