@@ -10,20 +10,16 @@ TVDB_API_KEY = os.getenv(
     "TVDB_API_KEY"
 )
 
-# CACHE TOKEN
-
 TVDB_TOKEN = None
 TVDB_TOKEN_TIME = 0
 
 
-# GET TOKEN
+# TOKEN
 
 def get_tvdb_token():
 
     global TVDB_TOKEN
     global TVDB_TOKEN_TIME
-
-    # REUSE TOKEN 23 HOURS
 
     if (
         TVDB_TOKEN
@@ -59,7 +55,7 @@ def get_tvdb_token():
     return token
 
 
-# SEARCH SERIES
+# SEARCH
 
 def search_tvdb_series(name):
 
@@ -82,7 +78,8 @@ def search_tvdb_series(name):
     response = requests.get(
         url,
         headers=headers,
-        params=params
+        params=params,
+        timeout=8
     )
 
     data = response.json()
@@ -93,7 +90,7 @@ def search_tvdb_series(name):
     )
 
 
-# GET SERIES DETAILS
+# LIGHT SERIES INFO
 
 def get_tvdb_series(series_id):
 
@@ -101,7 +98,7 @@ def get_tvdb_series(series_id):
 
     url = (
         f"https://api4.thetvdb.com/v4/"
-        f"series/{series_id}/extended"
+        f"series/{series_id}"
     )
 
     headers = {
@@ -111,7 +108,8 @@ def get_tvdb_series(series_id):
 
     response = requests.get(
         url,
-        headers=headers
+        headers=headers,
+        timeout=8
     )
 
     data = response.json()
@@ -122,137 +120,171 @@ def get_tvdb_series(series_id):
     )
 
 
-# DETECT ANIME
+# EPISODES
 
-def is_anime(details):
+def get_tvdb_episodes(series_id):
 
-    genres = details.get(
-        "genres",
-        []
+    token = get_tvdb_token()
+
+    url = (
+        f"https://api4.thetvdb.com/v4/"
+        f"series/{series_id}/episodes/default"
     )
 
-    genre_names = [
-        genre.get(
-            "name",
-            ""
-        )
-        for genre in genres
-    ]
+    headers = {
+        "Authorization":
+        f"Bearer {token}"
+    }
 
-    origin = details.get(
-        "originalCountry",
-        ""
+    response = requests.get(
+        url,
+        headers=headers,
+        timeout=8
     )
 
-    return (
-        "Animation"
-        in genre_names
-        and origin == "jpn"
+    data = response.json()
+
+    return data.get(
+        "data",
+        {}
     )
 
 
-# GET ANIME INFO
+# ANIME INFO
 
 def get_anime_info(title):
 
-    results = search_tvdb_series(
-        title
-    )
+    try:
 
-    if not results:
-
-        return None
-
-    anime = results[0]
-
-    tvdb_id = anime.get(
-        "tvdb_id"
-    )
-
-    if not tvdb_id:
-
-        return None
-
-    details = get_tvdb_series(
-        tvdb_id
-    )
-
-    seasons = details.get(
-        "seasons",
-        []
-    )
-
-    real_seasons = []
-
-    total_episodes = 0
-
-    for season in seasons:
-
-        season_number = season.get(
-            "number",
-            0
+        results = search_tvdb_series(
+            title
         )
 
-        # IGNORE SPECIALS
+        if not results:
 
-        if season_number <= 0:
+            return None
 
-            continue
+        anime = results[0]
 
-        # EPISODE COUNT
-
-        episode_count = (
-            season.get(
-                "episodes",
-                0
-            )
-            or season.get(
-                "episodeCount",
-                0
-            )
-            or 0
+        tvdb_id = anime.get(
+            "tvdb_id"
         )
 
-        # IGNORE EMPTY /
-        # FUTURE PLACEHOLDERS
+        if not tvdb_id:
 
-        if episode_count <= 0:
+            return None
 
-            continue
+        # LIGHT DETAILS
 
-        # IGNORE WEIRD
-        # DUPLICATE COURS
+        details = get_tvdb_series(
+            tvdb_id
+        )
 
-        season_name = str(
-            season.get(
+        # EPISODES
+
+        episode_data = get_tvdb_episodes(
+            tvdb_id
+        )
+
+        episodes = episode_data.get(
+            "episodes",
+            []
+        )
+
+        # COUNT REAL SEASONS
+
+        seasons_found = set()
+
+        total_episodes = 0
+
+        latest_episode = None
+
+        for ep in episodes:
+
+            season = ep.get(
+                "seasonNumber",
+                0
+            )
+
+            number = ep.get(
+                "number",
+                0
+            )
+
+            air_date = ep.get(
+                "aired"
+            )
+
+            # IGNORE SPECIALS
+
+            if season <= 0:
+
+                continue
+
+            if number <= 0:
+
+                continue
+
+            seasons_found.add(
+                season
+            )
+
+            total_episodes += 1
+
+            # FIND NEXT EP
+
+            if air_date:
+
+                try:
+
+                    air_ts = (
+                        time.mktime(
+                            time.strptime(
+                                air_date,
+                                "%Y-%m-%d"
+                            )
+                        )
+                    )
+
+                    if (
+                        air_ts
+                        > time.time()
+                    ):
+
+                        latest_episode = ep
+                        break
+
+                except:
+
+                    pass
+
+        return {
+
+            "season_count":
+            len(seasons_found),
+
+            "episode_count":
+            total_episodes,
+
+            "next_episode":
+            latest_episode,
+
+            "status":
+            details.get(
+                "status",
+                {}
+            ).get(
                 "name",
                 ""
             )
-        ).lower()
+        }
 
-        if (
-            "special"
-            in season_name
-        ):
+    except Exception as e:
 
-            continue
-
-        real_seasons.append(
-            season
+        print(
+            "TVDB ERROR:"
         )
 
-        total_episodes += (
-            episode_count
-        )
+        print(e)
 
-    return {
-
-        "season_count":
-        len(real_seasons),
-
-        "episode_count":
-        total_episodes,
-
-        "tvdb_data":
-        details
-    }
+        return None
