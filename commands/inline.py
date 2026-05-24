@@ -10,10 +10,18 @@ from telegram.ext import ContextTypes
 from services.tmdb import (
     search_content,
     get_details,
-    get_credits,
     get_trailer,
     get_watch_url,
     get_similar_url
+)
+
+from services.tvdb import (
+    get_anime_info
+)
+
+from datetime import (
+    datetime,
+    date
 )
 
 import traceback
@@ -34,9 +42,6 @@ async def inline_search(update,
 
         inline_results = []
 
-        # LIMIT RESULTS
-        # KEEP INLINE FAST
-
         for item in results[:5]:
 
             try:
@@ -52,8 +57,6 @@ async def inline_search(update,
                     continue
 
                 media_id = item["id"]
-
-                # DETAILS
 
                 details = get_details(
                     media_type,
@@ -94,6 +97,8 @@ async def inline_search(update,
                             f"⏱ {runtime} min"
                         )
 
+                    next_episode_text = ""
+
                 # TV
 
                 else:
@@ -124,6 +129,117 @@ async def inline_search(update,
                         "number_of_episodes",
                         0
                     )
+
+                    next_episode_text = ""
+
+                    # TVDB LIGHT INFO
+
+                    anime_data = get_anime_info(
+                        title
+                    )
+
+                    if anime_data:
+
+                        seasons = anime_data.get(
+                            "season_count",
+                            seasons
+                        )
+
+                        episodes = anime_data.get(
+                            "episode_count",
+                            episodes
+                        )
+
+                        next_ep = anime_data.get(
+                            "next_episode"
+                        )
+
+                        if next_ep:
+
+                            ep_name = next_ep.get(
+                                "name",
+                                "?"
+                            )
+
+                            ep_date = next_ep.get(
+                                "aired",
+                                "?"
+                            )
+
+                            ep_number = next_ep.get(
+                                "number",
+                                "?"
+                            )
+
+                            season_number = next_ep.get(
+                                "seasonNumber",
+                                "?"
+                            )
+
+                            try:
+
+                                future_date = (
+                                    datetime.strptime(
+                                        ep_date,
+                                        "%Y-%m-%d"
+                                    ).date()
+                                )
+
+                                today = date.today()
+
+                                days_left = (
+                                    future_date
+                                    - today
+                                ).days
+
+                            except:
+
+                                days_left = "?"
+
+                            weekday_map = {
+                                "Monday": "lunes",
+                                "Tuesday": "martes",
+                                "Wednesday": "miércoles",
+                                "Thursday": "jueves",
+                                "Friday": "viernes",
+                                "Saturday": "sábado",
+                                "Sunday": "domingo"
+                            }
+
+                            weekday_es = "?"
+
+                            try:
+
+                                weekday_en = (
+                                    future_date.strftime(
+                                        "%A"
+                                    )
+                                )
+
+                                weekday_es = (
+                                    weekday_map.get(
+                                        weekday_en,
+                                        weekday_en
+                                    )
+                                )
+
+                            except:
+
+                                pass
+
+                            next_episode_text = (
+                                f"\n📺 Emisión:\n"
+                                f"Todos los {weekday_es}\n\n"
+
+                                f"📅 Próximo episodio:\n"
+                                f"S{season_number}"
+                                f"E{ep_number}"
+                                f" — {ep_name}\n"
+                                f"{ep_date}\n\n"
+
+                                f"⏳ Faltan "
+                                f"{days_left} días"
+                            )
 
                     extra_info = ""
 
@@ -202,8 +318,6 @@ async def inline_search(update,
                     overview = (
                         "Sin descripción."
                     )
-
-                # LONGER OVERVIEW
 
                 if len(overview) > 900:
 
@@ -309,18 +423,6 @@ async def inline_search(update,
                     )
                 ])
 
-                # ADVANCED BUTTON
-
-                buttons.append([
-
-                    InlineKeyboardButton(
-                        "📖 Anime Details",
-                        switch_inline_query_current_chat=(
-                            f"/movie {title}"
-                        )
-                    )
-                ])
-
                 markup = InlineKeyboardMarkup(
                     buttons
                 )
@@ -347,6 +449,8 @@ async def inline_search(update,
 🎭 {genres_text}
 
 📖 {overview}
+
+{next_episode_text}
 """
 
                 inline_results.append(
