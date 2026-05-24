@@ -16,11 +16,6 @@ from services.tmdb import (
     get_similar_url
 )
 
-from datetime import (
-    datetime,
-    date
-)
-
 import traceback
 import uuid
 
@@ -40,7 +35,7 @@ async def inline_search(update,
         inline_results = []
 
         # LIMIT RESULTS
-        # FOR SPEED
+        # KEEP INLINE FAST
 
         for item in results[:5]:
 
@@ -58,15 +53,14 @@ async def inline_search(update,
 
                 media_id = item["id"]
 
-                # ONLY DETAILS
-                # KEEP INLINE FAST
+                # DETAILS
 
                 details = get_details(
                     media_type,
                     media_id
                 )
 
-                # BASIC INFO
+                # MOVIE
 
                 if media_type == "movie":
 
@@ -87,6 +81,21 @@ async def inline_search(update,
 
                     media_label = "🎬 Movie"
 
+                    runtime = details.get(
+                        "runtime",
+                        0
+                    )
+
+                    extra_info = ""
+
+                    if runtime:
+
+                        extra_info = (
+                            f"⏱ {runtime} min"
+                        )
+
+                # TV
+
                 else:
 
                     title = item.get(
@@ -106,6 +115,30 @@ async def inline_search(update,
 
                     media_label = "📺 TV"
 
+                    seasons = details.get(
+                        "number_of_seasons",
+                        0
+                    )
+
+                    episodes = details.get(
+                        "number_of_episodes",
+                        0
+                    )
+
+                    extra_info = ""
+
+                    if seasons > 0:
+
+                        extra_info += (
+                            f"📚 {seasons} temporadas\n"
+                        )
+
+                    if episodes > 0:
+
+                        extra_info += (
+                            f"🎞 {episodes} episodios"
+                        )
+
                 # STATUS
 
                 status = details.get(
@@ -115,23 +148,33 @@ async def inline_search(update,
 
                 if status == "Returning Series":
 
-                    status_text = "📡 Returning Series"
+                    status_text = (
+                        "📡 Returning Series"
+                    )
 
                 elif status == "Ended":
 
-                    status_text = "🏁 Ended"
+                    status_text = (
+                        "🏁 Ended"
+                    )
 
                 elif status == "Released":
 
-                    status_text = "✅ Released"
+                    status_text = (
+                        "✅ Released"
+                    )
 
                 elif status == "Planned":
 
-                    status_text = "🚧 Upcoming"
+                    status_text = (
+                        "🚧 Upcoming"
+                    )
 
                 elif status == "In Production":
 
-                    status_text = "🎥 In Production"
+                    status_text = (
+                        "🎥 In Production"
+                    )
 
                 else:
 
@@ -156,12 +199,16 @@ async def inline_search(update,
 
                 if not overview:
 
-                    overview = "Sin descripción."
+                    overview = (
+                        "Sin descripción."
+                    )
 
-                if len(overview) > 300:
+                # LONGER OVERVIEW
+
+                if len(overview) > 900:
 
                     overview = (
-                        overview[:300]
+                        overview[:900]
                         + "..."
                     )
 
@@ -294,6 +341,8 @@ async def inline_search(update,
 📅 {release}
 
 {status_text}
+
+{extra_info}
 
 🎭 {genres_text}
 
