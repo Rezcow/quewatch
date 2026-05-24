@@ -1,5 +1,6 @@
 import requests
 import os
+import time
 
 from dotenv import load_dotenv
 
@@ -9,10 +10,30 @@ TVDB_API_KEY = os.getenv(
     "TVDB_API_KEY"
 )
 
+# CACHE TOKEN
 
-# TOKEN
+TVDB_TOKEN = None
+TVDB_TOKEN_TIME = 0
+
+
+# GET TOKEN
 
 def get_tvdb_token():
+
+    global TVDB_TOKEN
+    global TVDB_TOKEN_TIME
+
+    # REUSE TOKEN 23 HOURS
+
+    if (
+        TVDB_TOKEN
+        and (
+            time.time()
+            - TVDB_TOKEN_TIME
+        ) < 82800
+    ):
+
+        return TVDB_TOKEN
 
     url = (
         "https://api4.thetvdb.com/v4/login"
@@ -29,7 +50,13 @@ def get_tvdb_token():
 
     data = response.json()
 
-    return data["data"]["token"]
+    token = data["data"]["token"]
+
+    TVDB_TOKEN = token
+
+    TVDB_TOKEN_TIME = time.time()
+
+    return token
 
 
 # SEARCH SERIES
@@ -66,7 +93,7 @@ def search_tvdb_series(name):
     )
 
 
-# SERIES DETAILS
+# GET SERIES DETAILS
 
 def get_tvdb_series(series_id):
 
@@ -93,3 +120,105 @@ def get_tvdb_series(series_id):
         "data",
         {}
     )
+
+
+# DETECT ANIME
+
+def is_anime(details):
+
+    genres = details.get(
+        "genres",
+        []
+    )
+
+    genre_names = [
+        genre.get(
+            "name",
+            ""
+        )
+        for genre in genres
+    ]
+
+    origin = details.get(
+        "origin_country",
+        []
+    )
+
+    return (
+        "Animation"
+        in genre_names
+        and "JP" in origin
+    )
+
+
+# GET ANIME INFO
+
+def get_anime_info(title):
+
+    results = search_tvdb_series(
+        title
+    )
+
+    if not results:
+
+        return None
+
+    anime = results[0]
+
+    tvdb_id = anime.get(
+        "tvdb_id"
+    )
+
+    if not tvdb_id:
+
+        return None
+
+    details = get_tvdb_series(
+        tvdb_id
+    )
+
+    seasons = details.get(
+        "seasons",
+        []
+    )
+
+    real_seasons = []
+
+    total_episodes = 0
+
+    for season in seasons:
+
+        season_type = season.get(
+            "type",
+            {}
+        )
+
+        season_name = season_type.get(
+            "name",
+            ""
+        )
+
+        if (
+            "official"
+            in season_name.lower()
+        ):
+
+            real_seasons.append(
+                season
+            )
+
+            total_episodes += season.get(
+                "number",
+                0
+            )
+
+    return {
+        "season_count":
+        len(real_seasons),
+
+        "episode_count":
+        total_episodes,
+
+        "tvdb_data":
+        details
+    }

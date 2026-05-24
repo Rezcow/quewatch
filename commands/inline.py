@@ -16,6 +16,10 @@ from services.tmdb import (
     get_similar_url
 )
 
+from services.tvdb import (
+    get_anime_info
+)
+
 from datetime import (
     datetime,
     date
@@ -94,6 +98,8 @@ async def inline_search(update,
                     else ""
                 )
 
+                episodes = 0
+
             # TV
 
             else:
@@ -115,15 +121,35 @@ async def inline_search(update,
 
                 media_label = "📺 TV"
 
-                seasons = details.get(
-                    "number_of_seasons",
-                    0
+                # TVDB ANIME CHECK
+
+                anime_data = get_anime_info(
+                    title
                 )
 
-                episodes = details.get(
-                    "number_of_episodes",
-                    0
-                )
+                if anime_data:
+
+                    seasons = anime_data.get(
+                        "season_count",
+                        0
+                    )
+
+                    episodes = anime_data.get(
+                        "episode_count",
+                        0
+                    )
+
+                else:
+
+                    seasons = details.get(
+                        "number_of_seasons",
+                        0
+                    )
+
+                    episodes = details.get(
+                        "number_of_episodes",
+                        0
+                    )
 
                 runtime_text = (
                     f"📚 {seasons} temporadas\n"
@@ -233,11 +259,15 @@ async def inline_search(update,
 
                     weekday_es = "?"
 
-                # REMAINING EPS
+                # REMAINING EPISODES
 
                 remaining_eps = (
                     episodes - ep_number
                 )
+
+                if remaining_eps < 0:
+
+                    remaining_eps = 0
 
                 next_episode_text = (
                     f"\n📺 Emisión:\n"

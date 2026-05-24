@@ -9,10 +9,6 @@ from dotenv import load_dotenv
 from commands.movie import movie
 from commands.inline import inline_search
 
-from services.tvdb import (
-    search_tvdb_series
-)
-
 from flask import Flask
 from threading import Thread
 
@@ -24,7 +20,9 @@ load_dotenv()
 
 flask_app = Flask(__name__)
 
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv(
+    "BOT_TOKEN"
+)
 
 
 @flask_app.route("/")
@@ -41,7 +39,7 @@ def run_web():
     )
 
 
-# START
+# START COMMAND
 
 async def start(update, context):
 
@@ -50,7 +48,7 @@ async def start(update, context):
     )
 
 
-# APP
+# BOT APP
 
 app = (
     Application.builder()
@@ -82,21 +80,19 @@ app.add_handler(
 )
 
 
-# START FLASK
+# KEEP RENDER ALIVE
 
 Thread(
-    target=run_web
+    target=run_web,
+    daemon=True
 ).start()
 
 
-# TVDB TEST
-
-print(
-    search_tvdb_series(
-        "Dr Stone"
-    )
-)
-
 print("QueWatch iniciado...")
 
-input("TEST MODE")
+
+# RUN BOT
+
+app.run_polling(
+    drop_pending_updates=True
+)
