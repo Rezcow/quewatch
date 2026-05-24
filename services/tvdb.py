@@ -199,11 +199,7 @@ def get_anime_info(title):
 
             continue
 
-        real_seasons.append(
-            season
-        )
-
-        # TVDB SOMETIMES USES DIFFERENT FIELDS
+        # EPISODE COUNT
 
         episode_count = (
             season.get(
@@ -217,7 +213,37 @@ def get_anime_info(title):
             or 0
         )
 
-        total_episodes += episode_count
+        # IGNORE EMPTY /
+        # FUTURE PLACEHOLDERS
+
+        if episode_count <= 0:
+
+            continue
+
+        # IGNORE WEIRD
+        # DUPLICATE COURS
+
+        season_name = str(
+            season.get(
+                "name",
+                ""
+            )
+        ).lower()
+
+        if (
+            "special"
+            in season_name
+        ):
+
+            continue
+
+        real_seasons.append(
+            season
+        )
+
+        total_episodes += (
+            episode_count
+        )
 
     return {
 
