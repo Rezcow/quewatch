@@ -179,7 +179,7 @@ def get_details(media_type,
 
     params = {
         "api_key": TMDB_API,
-        "language": "es-ES"
+        "language": "en-US"
     }
 
     response = requests.get(

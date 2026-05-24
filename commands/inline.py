@@ -61,9 +61,14 @@ async def inline_search(update,
 
             if media_type == "movie":
 
-                title = details.get(
+                title = item.get(
                     "title",
                     "Unknown"
+                )
+
+                original_title = details.get(
+                    "original_title",
+                    title
                 )
 
                 release = details.get(
@@ -86,9 +91,14 @@ async def inline_search(update,
 
             else:
 
-                title = details.get(
+                title = item.get(
                     "name",
                     "Unknown"
+                )
+
+                original_title = details.get(
+                    "original_name",
+                    title
                 )
 
                 release = details.get(
@@ -190,7 +200,7 @@ async def inline_search(update,
 
             # OVERVIEW
 
-            overview = details.get(
+            overview = item.get(
                 "overview",
                 "Sin descripción."
             )
@@ -324,6 +334,8 @@ async def inline_search(update,
 <a href="{poster_url}">‎</a>
 
 <b>{title}</b>
+
+<blockquote>{original_title}</blockquote>
 
 {media_label}
 
