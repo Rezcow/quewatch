@@ -195,10 +195,10 @@ async def inline_search(update,
                 "Sin descripción."
             )
 
-            if len(overview) > 220:
+            if len(overview) > 450:
 
                 overview = (
-                    overview[:220]
+                    overview[:450]
                     + "..."
                 )
 
