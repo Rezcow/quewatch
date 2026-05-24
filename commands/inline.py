@@ -25,6 +25,7 @@ from datetime import (
     date
 )
 
+import traceback
 import uuid
 
 
@@ -44,451 +45,479 @@ async def inline_search(update,
 
         for item in results[:10]:
 
-            media_type = item.get(
-                "media_type"
-            )
+            try:
 
-            if media_type not in [
-                "movie",
-                "tv"
-            ]:
-                continue
-
-            media_id = item["id"]
-
-            details = get_details(
-                media_type,
-                media_id
-            )
-
-            credits = get_credits(
-                media_type,
-                media_id
-            )
-
-            # STATUS FIRST
-
-            status = details.get(
-                "status",
-                ""
-            )
-
-            # MOVIE
-
-            if media_type == "movie":
-
-                title = item.get(
-                    "title",
-                    "Unknown"
+                media_type = item.get(
+                    "media_type"
                 )
 
-                original_title = details.get(
-                    "original_title",
-                    title
-                )
-
-                release = item.get(
-                    "release_date",
-                    "?"
-                )
-
-                media_label = "🎬 Movie"
-
-                runtime = details.get(
-                    "runtime",
-                    0
-                )
-
-                runtime_text = (
-                    f"⏱ {runtime} min"
-                    if runtime
-                    else ""
-                )
-
-                episodes = 0
-
-            # TV
-
-            else:
-
-                title = item.get(
-                    "name",
-                    "Unknown"
-                )
-
-                original_title = details.get(
-                    "original_name",
-                    title
-                )
-
-                release = item.get(
-                    "first_air_date",
-                    "?"
-                )
-
-                media_label = "📺 TV"
-
-                anime_data = get_anime_info(
-                    title
-                )
-
-                if anime_data:
-
-                    seasons = anime_data.get(
-                        "season_count",
-                        0
-                    )
-
-                    episodes = anime_data.get(
-                        "episode_count",
-                        0
-                    )
-
-                else:
-
-                    seasons = details.get(
-                        "number_of_seasons",
-                        0
-                    )
-
-                    episodes = details.get(
-                        "number_of_episodes",
-                        0
-                    )
-
-                # HIDE FAKE DATA
-                # FOR UPCOMING / PRODUCTION
-
-                if status in [
-                    "Planned",
-                    "In Production"
+                if media_type not in [
+                    "movie",
+                    "tv"
                 ]:
+                    continue
 
-                    runtime_text = ""
+                media_id = item["id"]
 
-                else:
+                details = get_details(
+                    media_type,
+                    media_id
+                )
+
+                credits = get_credits(
+                    media_type,
+                    media_id
+                )
+
+                # STATUS
+
+                status = details.get(
+                    "status",
+                    ""
+                )
+
+                # MOVIE
+
+                if media_type == "movie":
+
+                    title = item.get(
+                        "title",
+                        "Unknown"
+                    )
+
+                    original_title = details.get(
+                        "original_title",
+                        title
+                    )
+
+                    release = item.get(
+                        "release_date",
+                        "?"
+                    )
+
+                    media_label = "🎬 Movie"
+
+                    runtime = details.get(
+                        "runtime",
+                        0
+                    )
 
                     runtime_text = (
-                        f"📚 {seasons} temporadas\n"
-                        f"🎞 {episodes} episodios"
+                        f"⏱ {runtime} min"
+                        if runtime
+                        else ""
                     )
 
-            # STATUS TEXT
+                    episodes = 0
 
-            if status == "Returning Series":
+                # TV
 
-                status_text = "📡 Returning Series"
+                else:
 
-            elif status == "Ended":
-
-                status_text = "🏁 Ended"
-
-            elif status == "Released":
-
-                status_text = "✅ Released"
-
-            elif status == "Planned":
-
-                status_text = "🚧 Upcoming"
-
-            elif status == "In Production":
-
-                status_text = "🎥 In Production"
-
-            else:
-
-                status_text = status
-
-            # NEXT EPISODE
-
-            next_episode = details.get(
-                "next_episode_to_air"
-            )
-
-            next_episode_text = ""
-
-            if (
-                next_episode
-                and status not in [
-                    "Planned",
-                    "In Production"
-                ]
-            ):
-
-                ep_name = next_episode.get(
-                    "name",
-                    "?"
-                )
-
-                ep_date = next_episode.get(
-                    "air_date",
-                    "?"
-                )
-
-                ep_season = next_episode.get(
-                    "season_number",
-                    "?"
-                )
-
-                ep_number = next_episode.get(
-                    "episode_number",
-                    "?"
-                )
-
-                # DAYS LEFT
-
-                try:
-
-                    today = date.today()
-
-                    future_date = datetime.strptime(
-                        ep_date,
-                        "%Y-%m-%d"
-                    ).date()
-
-                    days_left = (
-                        future_date - today
-                    ).days
-
-                except:
-
-                    days_left = "?"
-
-                # WEEKDAY
-
-                weekday_map = {
-                    "Monday": "lunes",
-                    "Tuesday": "martes",
-                    "Wednesday": "miércoles",
-                    "Thursday": "jueves",
-                    "Friday": "viernes",
-                    "Saturday": "sábado",
-                    "Sunday": "domingo"
-                }
-
-                try:
-
-                    weekday_en = future_date.strftime(
-                        "%A"
+                    title = item.get(
+                        "name",
+                        "Unknown"
                     )
 
-                    weekday_es = weekday_map.get(
-                        weekday_en,
-                        weekday_en
+                    original_title = details.get(
+                        "original_name",
+                        title
                     )
 
-                except:
+                    release = item.get(
+                        "first_air_date",
+                        "?"
+                    )
+
+                    media_label = "📺 TV"
+
+                    anime_data = get_anime_info(
+                        title
+                    )
+
+                    if anime_data:
+
+                        seasons = anime_data.get(
+                            "season_count",
+                            0
+                        )
+
+                        episodes = anime_data.get(
+                            "episode_count",
+                            0
+                        )
+
+                    else:
+
+                        seasons = details.get(
+                            "number_of_seasons",
+                            0
+                        )
+
+                        episodes = details.get(
+                            "number_of_episodes",
+                            0
+                        )
+
+                    # UPCOMING / PRODUCTION
+
+                    if status in [
+                        "Planned",
+                        "In Production"
+                    ]:
+
+                        runtime_text = ""
+
+                    else:
+
+                        runtime_text = (
+                            f"📚 {seasons} temporadas\n"
+                            f"🎞 {episodes} episodios"
+                        )
+
+                # STATUS TEXT
+
+                if status == "Returning Series":
+
+                    status_text = "📡 Returning Series"
+
+                elif status == "Ended":
+
+                    status_text = "🏁 Ended"
+
+                elif status == "Released":
+
+                    status_text = "✅ Released"
+
+                elif status == "Planned":
+
+                    status_text = "🚧 Upcoming"
+
+                elif status == "In Production":
+
+                    status_text = "🎥 In Production"
+
+                else:
+
+                    status_text = status
+
+                # NEXT EPISODE
+
+                next_episode = details.get(
+                    "next_episode_to_air"
+                )
+
+                next_episode_text = ""
+
+                if (
+                    next_episode
+                    and status not in [
+                        "Planned",
+                        "In Production"
+                    ]
+                ):
+
+                    ep_name = next_episode.get(
+                        "name",
+                        "?"
+                    )
+
+                    ep_date = next_episode.get(
+                        "air_date",
+                        "?"
+                    )
+
+                    ep_season = next_episode.get(
+                        "season_number",
+                        "?"
+                    )
+
+                    ep_number = next_episode.get(
+                        "episode_number",
+                        0
+                    )
+
+                    try:
+
+                        ep_number = int(
+                            ep_number
+                        )
+
+                    except:
+
+                        ep_number = 0
+
+                    # DATE
+
+                    future_date = None
+
+                    try:
+
+                        today = date.today()
+
+                        future_date = datetime.strptime(
+                            ep_date,
+                            "%Y-%m-%d"
+                        ).date()
+
+                        days_left = (
+                            future_date - today
+                        ).days
+
+                    except:
+
+                        days_left = "?"
+
+                    # WEEKDAY
+
+                    weekday_map = {
+                        "Monday": "lunes",
+                        "Tuesday": "martes",
+                        "Wednesday": "miércoles",
+                        "Thursday": "jueves",
+                        "Friday": "viernes",
+                        "Saturday": "sábado",
+                        "Sunday": "domingo"
+                    }
 
                     weekday_es = "?"
 
-                # REMAINING EPISODES
+                    if future_date:
 
-                remaining_eps = (
-                    episodes - ep_number
-                )
+                        try:
 
-                if remaining_eps < 0:
+                            weekday_en = (
+                                future_date.strftime(
+                                    "%A"
+                                )
+                            )
+
+                            weekday_es = (
+                                weekday_map.get(
+                                    weekday_en,
+                                    weekday_en
+                                )
+                            )
+
+                        except:
+
+                            pass
+
+                    # REMAINING EPS
 
                     remaining_eps = 0
 
-                next_episode_text = (
-                    f"\n📺 Emisión:\n"
-                    f"Todos los {weekday_es}\n\n"
+                    try:
 
-                    f"📅 Próximo episodio:\n"
-                    f"S{ep_season}"
-                    f"E{ep_number}"
-                    f" — {ep_name}\n"
-                    f"{ep_date}\n\n"
+                        remaining_eps = (
+                            int(episodes)
+                            - int(ep_number)
+                        )
 
-                    f"⏳ Faltan "
-                    f"{days_left} días\n\n"
-                )
+                        if remaining_eps < 0:
 
-                # ONLY IF VALID
+                            remaining_eps = 0
 
-                if episodes > 0:
+                    except:
 
-                    next_episode_text += (
-                        f"🎞 Restan "
-                        f"{remaining_eps} episodios "
-                        f"para terminar la temporada"
+                        remaining_eps = 0
+
+                    next_episode_text = (
+                        f"\n📺 Emisión:\n"
+                        f"Todos los {weekday_es}\n\n"
+
+                        f"📅 Próximo episodio:\n"
+                        f"S{ep_season}"
+                        f"E{ep_number}"
+                        f" — {ep_name}\n"
+                        f"{ep_date}\n\n"
+
+                        f"⏳ Faltan "
+                        f"{days_left} días\n\n"
                     )
 
-            # RATING
+                    if episodes > 0:
 
-            rating = round(
-                details.get(
-                    "vote_average",
-                    0
-                ),
-                1
-            )
+                        next_episode_text += (
+                            f"🎞 Restan "
+                            f"{remaining_eps} episodios "
+                            f"para terminar la temporada"
+                        )
 
-            # OVERVIEW
+                # RATING
 
-            overview = item.get(
-                "overview",
-                "Sin descripción."
-            )
-
-            if not overview:
-
-                overview = "Sin descripción."
-
-            if len(overview) > 450:
-
-                overview = (
-                    overview[:450]
-                    + "..."
+                rating = round(
+                    details.get(
+                        "vote_average",
+                        0
+                    ),
+                    1
                 )
 
-            # GENRES
+                # OVERVIEW
 
-            genres = item.get(
-                "genre_ids",
-                []
-            )
+                overview = item.get(
+                    "overview",
+                    "Sin descripción."
+                )
 
-            genre_map = {
-                28: "Acción",
-                12: "Aventura",
-                16: "Animación",
-                35: "Comedia",
-                80: "Crimen",
-                99: "Documental",
-                18: "Drama",
-                10751: "Familia",
-                14: "Fantasía",
-                36: "Historia",
-                27: "Horror",
-                10402: "Música",
-                9648: "Misterio",
-                10749: "Romance",
-                878: "Ciencia ficción",
-                10770: "TV Movie",
-                53: "Thriller",
-                10752: "Guerra",
-                37: "Western"
-            }
+                if not overview:
 
-            genre_names = []
+                    overview = "Sin descripción."
 
-            for genre_id in genres[:3]:
+                if len(overview) > 450:
 
-                if genre_id in genre_map:
-
-                    genre_names.append(
-                        genre_map[genre_id]
+                    overview = (
+                        overview[:450]
+                        + "..."
                     )
 
-            genres_text = " • ".join(
-                genre_names
-            )
+                # GENRES
 
-            # CAST
+                genres = item.get(
+                    "genre_ids",
+                    []
+                )
 
-            cast = credits.get(
-                "cast",
-                []
-            )
+                genre_map = {
+                    28: "Acción",
+                    12: "Aventura",
+                    16: "Animación",
+                    35: "Comedia",
+                    80: "Crimen",
+                    99: "Documental",
+                    18: "Drama",
+                    10751: "Familia",
+                    14: "Fantasía",
+                    36: "Historia",
+                    27: "Horror",
+                    10402: "Música",
+                    9648: "Misterio",
+                    10749: "Romance",
+                    878: "Ciencia ficción",
+                    10770: "TV Movie",
+                    53: "Thriller",
+                    10752: "Guerra",
+                    37: "Western"
+                }
 
-            top_cast = [
-                actor["name"]
-                for actor in cast[:4]
-            ]
+                genre_names = []
 
-            cast_text = ", ".join(
-                top_cast
-            )
+                for genre_id in genres[:3]:
 
-            # DIRECTOR
+                    if genre_id in genre_map:
 
-            director = ""
+                        genre_names.append(
+                            genre_map[genre_id]
+                        )
 
-            crew = credits.get(
-                "crew",
-                []
-            )
+                genres_text = " • ".join(
+                    genre_names
+                )
 
-            for person in crew:
+                # CAST
 
-                if person.get("job") == "Director":
+                cast = credits.get(
+                    "cast",
+                    []
+                )
 
-                    director = person.get(
-                        "name"
+                top_cast = [
+                    actor["name"]
+                    for actor in cast[:4]
+                ]
+
+                cast_text = ", ".join(
+                    top_cast
+                )
+
+                # DIRECTOR
+
+                director = ""
+
+                crew = credits.get(
+                    "crew",
+                    []
+                )
+
+                for person in crew:
+
+                    if person.get("job") == "Director":
+
+                        director = person.get(
+                            "name"
+                        )
+
+                        break
+
+                # POSTER
+
+                poster_path = details.get(
+                    "poster_path"
+                )
+
+                if poster_path:
+
+                    poster_url = (
+                        "https://image.tmdb.org/t/p/w500"
+                        + poster_path
                     )
 
-                    break
+                else:
 
-            # POSTER
+                    poster_url = (
+                        "https://via.placeholder.com/300x450"
+                    )
 
-            poster_path = details.get(
-                "poster_path"
-            )
+                # BUTTONS
 
-            if poster_path:
-
-                poster_url = (
-                    "https://image.tmdb.org/t/p/w500"
-                    + poster_path
+                trailer_url = get_trailer(
+                    media_type,
+                    media_id
                 )
 
-            else:
-
-                poster_url = (
-                    "https://via.placeholder.com/300x450"
+                watch_url = get_watch_url(
+                    media_type,
+                    media_id
                 )
 
-            # BUTTONS
+                similar_url = get_similar_url(
+                    media_type,
+                    media_id
+                )
 
-            trailer_url = get_trailer(
-                media_type,
-                media_id
-            )
+                buttons = []
 
-            watch_url = get_watch_url(
-                media_type,
-                media_id
-            )
+                if trailer_url:
 
-            similar_url = get_similar_url(
-                media_type,
-                media_id
-            )
+                    buttons.append([
 
-            buttons = []
-
-            if trailer_url:
+                        InlineKeyboardButton(
+                            "🎬 Trailer",
+                            url=trailer_url
+                        )
+                    ])
 
                 buttons.append([
 
                     InlineKeyboardButton(
-                        "🎬 Trailer",
-                        url=trailer_url
+                        "📺 Watch",
+                        url=watch_url
+                    ),
+
+                    InlineKeyboardButton(
+                        "🧠 Similar",
+                        url=similar_url
                     )
                 ])
 
-            buttons.append([
-
-                InlineKeyboardButton(
-                    "📺 Watch",
-                    url=watch_url
-                ),
-
-                InlineKeyboardButton(
-                    "🧠 Similar",
-                    url=similar_url
+                markup = InlineKeyboardMarkup(
+                    buttons
                 )
-            ])
 
-            markup = InlineKeyboardMarkup(
-                buttons
-            )
+                # MESSAGE
 
-            # MESSAGE
-
-            text = f"""
+                text = f"""
 <a href="{poster_url}">‎</a>
 
 <b>{title}</b>
@@ -516,39 +545,45 @@ async def inline_search(update,
 {next_episode_text}
 """
 
-            inline_results.append(
+                inline_results.append(
 
-                InlineQueryResultArticle(
+                    InlineQueryResultArticle(
 
-                    id=str(uuid.uuid4()),
+                        id=str(uuid.uuid4()),
 
-                    title=title,
+                        title=title,
 
-                    description=(
-                        f"{media_label} • "
-                        f"{release} • "
-                        f"{rating}/10"
-                    ),
+                        description=(
+                            f"{media_label} • "
+                            f"{release} • "
+                            f"{rating}/10"
+                        ),
 
-                    thumbnail_url=poster_url,
+                        thumbnail_url=poster_url,
 
-                    reply_markup=markup,
+                        reply_markup=markup,
 
-                    input_message_content=(
-                        InputTextMessageContent(
-                            message_text=text,
-                            parse_mode="HTML"
+                        input_message_content=(
+                            InputTextMessageContent(
+                                message_text=text,
+                                parse_mode="HTML"
+                            )
                         )
                     )
                 )
-            )
+
+            except Exception:
+
+                traceback.print_exc()
+
+                continue
 
         await update.inline_query.answer(
             inline_results,
             cache_time=1
         )
 
-    except Exception as e:
+    except Exception:
 
         print("INLINE ERROR:")
-        print(e)
+        traceback.print_exc()
