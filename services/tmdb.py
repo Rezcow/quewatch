@@ -14,24 +14,157 @@ TMDB_API = os.getenv(
 
 def search_content(query):
 
+    all_results = []
+
     url = (
         "https://api.themoviedb.org/3/search/multi"
     )
 
-    params = {
+    # ENGLISH SEARCH FIRST
+
+    params_en = {
+        "api_key": TMDB_API,
+        "query": query,
+        "language": "en-US"
+    }
+
+    response_en = requests.get(
+        url,
+        params=params_en
+    )
+
+    data_en = response_en.json()
+
+    results_en = data_en.get(
+        "results",
+        []
+    )
+
+    all_results.extend(
+        results_en
+    )
+
+    # SPANISH FALLBACK
+
+    params_es = {
         "api_key": TMDB_API,
         "query": query,
         "language": "es-ES"
     }
 
-    response = requests.get(
+    response_es = requests.get(
         url,
-        params=params
+        params=params_es
     )
 
-    data = response.json()
+    data_es = response_es.json()
 
-    return data["results"]
+    results_es = data_es.get(
+        "results",
+        []
+    )
+
+    all_results.extend(
+        results_es
+    )
+
+    # REMOVE DUPLICATES
+
+    unique = {}
+
+    for item in all_results:
+
+        media_type = item.get(
+            "media_type"
+        )
+
+        if media_type not in [
+            "movie",
+            "tv"
+        ]:
+            continue
+
+        unique_key = (
+            f"{media_type}_"
+            f"{item.get('id')}"
+        )
+
+        if unique_key not in unique:
+
+            unique[unique_key] = item
+
+    filtered = list(
+        unique.values()
+    )
+
+    # SMART SORT
+
+    query_lower = query.lower()
+
+    def score(item):
+
+        title = (
+            item.get("title")
+            or item.get("name")
+            or ""
+        ).lower()
+
+        original = (
+            item.get("original_title")
+            or item.get("original_name")
+            or ""
+        ).lower()
+
+        popularity = item.get(
+            "popularity",
+            0
+        )
+
+        vote_count = item.get(
+            "vote_count",
+            0
+        )
+
+        points = 0
+
+        # EXACT MATCH
+
+        if query_lower == title:
+
+            points += 1000
+
+        if query_lower == original:
+
+            points += 1000
+
+        # CONTAINS QUERY
+
+        if query_lower in title:
+
+            points += 500
+
+        if query_lower in original:
+
+            points += 500
+
+        # POPULARITY
+
+        points += popularity
+
+        # VOTES
+
+        points += (
+            vote_count / 100
+        )
+
+        return points
+
+    filtered.sort(
+        key=score,
+        reverse=True
+    )
+
+    return filtered
 
 
 # DETAILS
