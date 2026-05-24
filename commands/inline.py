@@ -16,6 +16,11 @@ from services.tmdb import (
     get_similar_url
 )
 
+from datetime import (
+    datetime,
+    date
+)
+
 import uuid
 
 
@@ -182,12 +187,74 @@ async def inline_search(update,
                     "?"
                 )
 
+                # DAYS LEFT
+
+                try:
+
+                    today = date.today()
+
+                    future_date = datetime.strptime(
+                        ep_date,
+                        "%Y-%m-%d"
+                    ).date()
+
+                    days_left = (
+                        future_date - today
+                    ).days
+
+                except:
+
+                    days_left = "?"
+
+                # WEEKDAY
+
+                weekday_map = {
+                    "Monday": "lunes",
+                    "Tuesday": "martes",
+                    "Wednesday": "miércoles",
+                    "Thursday": "jueves",
+                    "Friday": "viernes",
+                    "Saturday": "sábado",
+                    "Sunday": "domingo"
+                }
+
+                try:
+
+                    weekday_en = future_date.strftime(
+                        "%A"
+                    )
+
+                    weekday_es = weekday_map.get(
+                        weekday_en,
+                        weekday_en
+                    )
+
+                except:
+
+                    weekday_es = "?"
+
+                # REMAINING EPS
+
+                remaining_eps = (
+                    episodes - ep_number
+                )
+
                 next_episode_text = (
-                    f"\n📅 Próximo episodio:\n"
+                    f"\n📺 Emisión:\n"
+                    f"Todos los {weekday_es}\n\n"
+
+                    f"📅 Próximo episodio:\n"
                     f"S{ep_season}"
                     f"E{ep_number}"
                     f" — {ep_name}\n"
-                    f"{ep_date}"
+                    f"{ep_date}\n\n"
+
+                    f"⏳ Faltan "
+                    f"{days_left} días\n\n"
+
+                    f"🎞 Restan "
+                    f"{remaining_eps} episodios "
+                    f"para terminar la temporada"
                 )
 
             # RATING
@@ -200,7 +267,7 @@ async def inline_search(update,
                 1
             )
 
-            # OVERVIEW IN SPANISH
+            # OVERVIEW
 
             overview = item.get(
                 "overview",
