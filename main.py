@@ -9,6 +9,10 @@ from dotenv import load_dotenv
 from commands.movie import movie
 from commands.inline import inline_search
 
+from services.tvdb import (
+    search_tvdb_series
+)
+
 from flask import Flask
 from threading import Thread
 
@@ -83,6 +87,15 @@ app.add_handler(
 Thread(
     target=run_web
 ).start()
+
+
+# TVDB TEST
+
+print(
+    search_tvdb_series(
+        "Dr Stone"
+    )
+)
 
 print("QueWatch iniciado...")
 
