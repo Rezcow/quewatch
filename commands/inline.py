@@ -57,7 +57,7 @@ async def inline_search(update,
                 media_id
             )
 
-            # TITLE
+            # MOVIE
 
             if media_type == "movie":
 
@@ -71,7 +71,7 @@ async def inline_search(update,
                     title
                 )
 
-                release = details.get(
+                release = item.get(
                     "release_date",
                     "?"
                 )
@@ -89,6 +89,8 @@ async def inline_search(update,
                     else ""
                 )
 
+            # TV
+
             else:
 
                 title = item.get(
@@ -101,7 +103,7 @@ async def inline_search(update,
                     title
                 )
 
-                release = details.get(
+                release = item.get(
                     "first_air_date",
                     "?"
                 )
@@ -198,12 +200,16 @@ async def inline_search(update,
                 1
             )
 
-            # OVERVIEW
+            # OVERVIEW IN SPANISH
 
             overview = item.get(
                 "overview",
                 "Sin descripción."
             )
+
+            if not overview:
+
+                overview = "Sin descripción."
 
             if len(overview) > 450:
 
@@ -214,15 +220,42 @@ async def inline_search(update,
 
             # GENRES
 
-            genres = details.get(
-                "genres",
+            genres = item.get(
+                "genre_ids",
                 []
             )
 
-            genre_names = [
-                genre["name"]
-                for genre in genres[:3]
-            ]
+            genre_map = {
+                28: "Acción",
+                12: "Aventura",
+                16: "Animación",
+                35: "Comedia",
+                80: "Crimen",
+                99: "Documental",
+                18: "Drama",
+                10751: "Familia",
+                14: "Fantasía",
+                36: "Historia",
+                27: "Horror",
+                10402: "Música",
+                9648: "Misterio",
+                10749: "Romance",
+                878: "Ciencia ficción",
+                10770: "TV Movie",
+                53: "Thriller",
+                10752: "Guerra",
+                37: "Western"
+            }
+
+            genre_names = []
+
+            for genre_id in genres[:3]:
+
+                if genre_id in genre_map:
+
+                    genre_names.append(
+                        genre_map[genre_id]
+                    )
 
             genres_text = " • ".join(
                 genre_names
