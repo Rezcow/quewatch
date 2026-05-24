@@ -132,11 +132,20 @@ async def inline_search(update,
 
                     next_episode_text = ""
 
-                    # TVDB LIGHT INFO
+                    # ONLY FIRST RESULT USES TVDB
+                    # AVOID TELEGRAM TIMEOUT
 
-                    anime_data = get_anime_info(
-                        title
+                    anime_data = None
+
+                    use_tvdb = (
+                        len(inline_results) == 0
                     )
+
+                    if use_tvdb:
+
+                        anime_data = get_anime_info(
+                            title
+                        )
 
                     if anime_data:
 
