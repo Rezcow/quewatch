@@ -140,14 +140,14 @@ def is_anime(details):
     ]
 
     origin = details.get(
-        "origin_country",
-        []
+        "originalCountry",
+        ""
     )
 
     return (
         "Animation"
         in genre_names
-        and "JP" in origin
+        and origin == "jpn"
     )
 
 
@@ -188,31 +188,39 @@ def get_anime_info(title):
 
     for season in seasons:
 
-        season_type = season.get(
-            "type",
-            {}
+        season_number = season.get(
+            "number",
+            0
         )
 
-        season_name = season_type.get(
-            "name",
-            ""
+        # IGNORE SPECIALS
+
+        if season_number <= 0:
+
+            continue
+
+        real_seasons.append(
+            season
         )
 
-        if (
-            "official"
-            in season_name.lower()
-        ):
+        # TVDB SOMETIMES USES DIFFERENT FIELDS
 
-            real_seasons.append(
-                season
-            )
-
-            total_episodes += season.get(
-                "number",
+        episode_count = (
+            season.get(
+                "episodes",
                 0
             )
+            or season.get(
+                "episodeCount",
+                0
+            )
+            or 0
+        )
+
+        total_episodes += episode_count
 
     return {
+
         "season_count":
         len(real_seasons),
 
