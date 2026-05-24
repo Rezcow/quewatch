@@ -66,6 +66,13 @@ async def inline_search(update,
                 media_id
             )
 
+            # STATUS FIRST
+
+            status = details.get(
+                "status",
+                ""
+            )
+
             # MOVIE
 
             if media_type == "movie":
@@ -121,8 +128,6 @@ async def inline_search(update,
 
                 media_label = "📺 TV"
 
-                # TVDB ANIME CHECK
-
                 anime_data = get_anime_info(
                     title
                 )
@@ -151,17 +156,24 @@ async def inline_search(update,
                         0
                     )
 
-                runtime_text = (
-                    f"📚 {seasons} temporadas\n"
-                    f"🎞 {episodes} episodios"
-                )
+                # HIDE FAKE DATA
+                # FOR UPCOMING / PRODUCTION
 
-            # STATUS
+                if status in [
+                    "Planned",
+                    "In Production"
+                ]:
 
-            status = details.get(
-                "status",
-                ""
-            )
+                    runtime_text = ""
+
+                else:
+
+                    runtime_text = (
+                        f"📚 {seasons} temporadas\n"
+                        f"🎞 {episodes} episodios"
+                    )
+
+            # STATUS TEXT
 
             if status == "Returning Series":
 
@@ -179,6 +191,10 @@ async def inline_search(update,
 
                 status_text = "🚧 Upcoming"
 
+            elif status == "In Production":
+
+                status_text = "🎥 In Production"
+
             else:
 
                 status_text = status
@@ -191,7 +207,13 @@ async def inline_search(update,
 
             next_episode_text = ""
 
-            if next_episode:
+            if (
+                next_episode
+                and status not in [
+                    "Planned",
+                    "In Production"
+                ]
+            ):
 
                 ep_name = next_episode.get(
                     "name",
@@ -281,11 +303,17 @@ async def inline_search(update,
 
                     f"⏳ Faltan "
                     f"{days_left} días\n\n"
-
-                    f"🎞 Restan "
-                    f"{remaining_eps} episodios "
-                    f"para terminar la temporada"
                 )
+
+                # ONLY IF VALID
+
+                if episodes > 0:
+
+                    next_episode_text += (
+                        f"🎞 Restan "
+                        f"{remaining_eps} episodios "
+                        f"para terminar la temporada"
+                    )
 
             # RATING
 
