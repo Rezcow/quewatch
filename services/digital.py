@@ -38,70 +38,63 @@ def search_digital_release(query):
 
         results = []
 
-        cards = soup.select(
-            ".results li"
+        movie_links = soup.select(
+            "a[href*='/movies/']"
         )
 
-        for card in cards[:5]:
+        seen = set()
+
+        for link_el in movie_links:
 
             try:
 
-                title_el = card.select_one(
-                    "h4 a"
+                href = link_el.get(
+                    "href",
+                    ""
                 )
 
-                if not title_el:
+                if not href:
                     continue
 
-                title = (
-                    title_el.get_text(
-                        strip=True
-                    )
-                )
+                if href in seen:
+                    continue
 
-                link = (
-                    "https://www.dvdsreleasedates.com"
-                    + title_el["href"]
-                )
+                seen.add(href)
 
-                poster_el = card.select_one(
+                img = link_el.select_one(
                     "img"
                 )
 
-                poster = ""
+                if not img:
+                    continue
 
-                if poster_el:
+                title = img.get(
+                    "alt",
+                    ""
+                ).strip()
 
-                    poster = poster_el.get(
-                        "src",
-                        ""
-                    )
+                if not title:
+                    continue
 
-                release_text = ""
-
-                meta = card.select_one(
-                    ".meta"
+                full_link = (
+                    "https://www.dvdsreleasedates.com"
+                    + href
                 )
-
-                if meta:
-
-                    release_text = (
-                        meta.get_text(
-                            " ",
-                            strip=True
-                        )
-                    )
 
                 results.append({
 
                     "title": title,
 
-                    "link": link,
+                    "release": (
+                        "Digital Release"
+                    ),
 
-                    "poster": poster,
-
-                    "release": release_text
+                    "link": full_link
                 })
+
+                if len(results) >= 5:
+
+                    break
 
             except:
 
@@ -151,63 +144,65 @@ def get_upcoming_digital():
 
         results = []
 
-        # REAL SITE STRUCTURE
+        # REAL MOVIE BLOCKS
 
-        blocks = soup.select(
-            ".row"
+        movie_links = soup.select(
+            "a[href*='/movies/']"
         )
 
-        for block in blocks:
+        seen = set()
+
+        for link_el in movie_links:
 
             try:
 
-                movies = block.select(
-                    ".cover"
+                href = link_el.get(
+                    "href",
+                    ""
                 )
 
-                for movie in movies[:5]:
+                if not href:
+                    continue
 
-                    title_el = movie.select_one(
-                        "img"
-                    )
+                if href in seen:
+                    continue
 
-                    if not title_el:
-                        continue
+                seen.add(href)
 
-                    title = (
-                        title_el.get(
-                            "alt",
-                            ""
-                        )
-                    )
+                img = link_el.select_one(
+                    "img"
+                )
 
-                    link_el = movie.find_parent(
-                        "a"
-                    )
+                if not img:
+                    continue
 
-                    if not link_el:
-                        continue
+                title = img.get(
+                    "alt",
+                    ""
+                ).strip()
 
-                    link = (
-                        "https://www.dvdsreleasedates.com"
-                        + link_el.get(
-                            "href",
-                            ""
-                        )
-                    )
+                if not title:
+                    continue
 
-                    results.append({
+                full_link = (
+                    "https://www.dvdsreleasedates.com"
+                    + href
+                )
 
-                        "title": title,
+                results.append({
 
-                        "release": (
-                            "Upcoming Digital Release"
-                        ),
+                    "title": title,
 
-                        "link": link
-                    })
+                    "release": (
+                        "Upcoming Digital Release"
+                    ),
 
-                if results:
+                    "link": full_link
+                })
+
+                # LIMIT
+
+                if len(results) >= 10:
 
                     break
 
