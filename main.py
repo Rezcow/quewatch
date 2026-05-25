@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 from commands.movie import movie
 from commands.inline import inline_search
+from commands.digital import digital
 
 from flask import Flask
 from threading import Thread
@@ -72,6 +73,17 @@ app.add_handler(
         movie
     )
 )
+
+# DIGITAL RELEASES
+
+app.add_handler(
+    CommandHandler(
+        "digital",
+        digital
+    )
+)
+
+# INLINE
 
 app.add_handler(
     InlineQueryHandler(
