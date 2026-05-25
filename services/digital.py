@@ -151,55 +151,65 @@ def get_upcoming_digital():
 
         results = []
 
-        cards = soup.select(
-            ".calendar .card"
+        # REAL SITE STRUCTURE
+
+        blocks = soup.select(
+            ".row"
         )
 
-        for card in cards[:10]:
+        for block in blocks:
 
             try:
 
-                title_el = card.select_one(
-                    "h4 a"
+                movies = block.select(
+                    ".cover"
                 )
 
-                if not title_el:
-                    continue
+                for movie in movies[:5]:
 
-                title = (
-                    title_el.get_text(
-                        strip=True
+                    title_el = movie.select_one(
+                        "img"
                     )
-                )
 
-                link = (
-                    "https://www.dvdsreleasedates.com"
-                    + title_el["href"]
-                )
+                    if not title_el:
+                        continue
 
-                date_el = card.select_one(
-                    ".date"
-                )
-
-                release_date = ""
-
-                if date_el:
-
-                    release_date = (
-                        date_el.get_text(
-                            " ",
-                            strip=True
+                    title = (
+                        title_el.get(
+                            "alt",
+                            ""
                         )
                     )
 
-                results.append({
+                    link_el = movie.find_parent(
+                        "a"
+                    )
 
-                    "title": title,
+                    if not link_el:
+                        continue
 
-                    "release": release_date,
+                    link = (
+                        "https://www.dvdsreleasedates.com"
+                        + link_el.get(
+                            "href",
+                            ""
+                        )
+                    )
 
-                    "link": link
-                })
+                    results.append({
+
+                        "title": title,
+
+                        "release": (
+                            "Upcoming Digital Release"
+                        ),
+
+                        "link": link
+                    })
+
+                if results:
+
+                    break
 
             except:
 
