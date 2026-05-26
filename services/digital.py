@@ -2,6 +2,15 @@ import requests
 
 from bs4 import BeautifulSoup
 
+from datetime import (
+    datetime,
+    timedelta
+)
+
+from services.tmdb import (
+    search_content
+)
+
 
 # SEARCH DIGITAL RELEASE
 
@@ -142,9 +151,13 @@ def get_upcoming_digital():
             "lxml"
         )
 
-        results = []
+        today = datetime.today()
 
-        # REAL MOVIE BLOCKS
+        limit_date = (
+            today + timedelta(days=30)
+        )
+
+        results = []
 
         movie_links = soup.select(
             "a[href*='/movies/']"
@@ -184,33 +197,161 @@ def get_upcoming_digital():
                 if not title:
                     continue
 
+                # TMDB FILTER
+                # REMOVE LOW QUALITY RESULTS
+
+                tmdb_results = search_content(
+                    title
+                )
+
+                if not tmdb_results:
+                    continue
+
+                tmdb = tmdb_results[0]
+
+                popularity = tmdb.get(
+                    "popularity",
+                    0
+                )
+
+                vote_count = tmdb.get(
+                    "vote_count",
+                    0
+                )
+
+                poster = tmdb.get(
+                    "poster_path"
+                )
+
+                rating = round(
+                    tmdb.get(
+                        "vote_average",
+                        0
+                    ),
+                    1
+                )
+
+                # FILTER BAD RESULTS
+
+                if popularity < 15:
+                    continue
+
+                if vote_count < 25:
+                    continue
+
+                if not poster:
+                    continue
+
+                # TRY TO FIND DATE
+
+                parent = link_el.parent
+
+                text = parent.get_text(
+                    " ",
+                    strip=True
+                )
+
+                release_date = None
+
+                possible_formats = [
+
+                    "%B %d, %Y",
+                    "%b %d, %Y"
+
+                ]
+
+                for word in text.split():
+
+                    pass
+
+                import re
+
+                match = re.search(
+                    r"([A-Z][a-z]+ \d{1,2}, \d{4})",
+                    text
+                )
+
+                if match:
+
+                    date_str = match.group(1)
+
+                    for fmt in possible_formats:
+
+                        try:
+
+                            release_date = (
+                                datetime.strptime(
+                                    date_str,
+                                    fmt
+                                )
+                            )
+
+                            break
+
+                        except:
+
+                            continue
+
+                if not release_date:
+                    continue
+
+                # DATE FILTER
+
+                if release_date < today:
+                    continue
+
+                if release_date > limit_date:
+                    continue
+
                 full_link = (
                     "https://www.dvdsreleasedates.com"
                     + href
+                )
+
+                poster_url = (
+                    "https://image.tmdb.org/t/p/w500"
+                    + poster
                 )
 
                 results.append({
 
                     "title": title,
 
-                    "release": (
-                        "Upcoming Digital Release"
+                    "release_date": release_date,
+
+                    "release": release_date.strftime(
+                        "%d %b %Y"
                     ),
 
-                    "link": full_link
+                    "rating": rating,
+
+                    "poster": poster_url,
+
+                    "link": full_link,
+
+                    "popularity": popularity
                 })
 
-                # LIMIT
+            except Exception as e:
 
-                if len(results) >= 10:
+                print(
+                    "DIGITAL ITEM ERROR:"
+                )
 
-                    break
-
-            except:
+                print(e)
 
                 continue
 
-        return results
+        # SORT BY DATE
+
+        results.sort(
+            key=lambda x:
+            x["release_date"]
+        )
+
+        # LIMIT
+
+        return results[:10]
 
     except Exception as e:
 
