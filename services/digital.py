@@ -199,15 +199,88 @@ def get_upcoming_digital():
                 if not title:
                     continue
 
-                # TMDB DATA
-
-                tmdb_results = search_content(
-                    title
+                movie_url = (
+                    "https://www.dvdsreleasedates.com"
+                    + href
                 )
+
+                # OPEN MOVIE PAGE
+
+                movie_response = requests.get(
+                    movie_url,
+                    headers=headers,
+                    timeout=10
+                )
+
+                movie_soup = BeautifulSoup(
+                    movie_response.text,
+                    "lxml"
+                )
+
+                movie_text = movie_soup.get_text(
+                    " ",
+                    strip=True
+                )
+
+                # FIND DATE
+
+                matches = re.findall(
+                    r"([A-Z][a-z]+ \d{1,2}, \d{4})",
+                    movie_text
+                )
+
+                release_date = None
+
+                for date_str in matches:
+
+                    try:
+
+                        release_date = (
+                            datetime.strptime(
+                                date_str,
+                                "%B %d, %Y"
+                            )
+                        )
+
+                        break
+
+                    except:
+
+                        try:
+
+                            release_date = (
+                                datetime.strptime(
+                                    date_str,
+                                    "%b %d, %Y"
+                                )
+                            )
+
+                            break
+
+                        except:
+
+                            continue
+
+                if not release_date:
+                    continue
+
+                # FILTER RANGE
+
+                if release_date < today:
+                    continue
+
+                if release_date > limit_date:
+                    continue
+
+                # TMDB
 
                 rating = "?"
 
                 poster_url = None
+
+                tmdb_results = search_content(
+                    title
+                )
 
                 if tmdb_results:
 
@@ -232,64 +305,6 @@ def get_upcoming_digital():
                             + poster
                         )
 
-                # FIND DATE
-
-                parent_text = (
-                    link_el.parent.get_text(
-                        " ",
-                        strip=True
-                    )
-                )
-
-                match = re.search(
-                    r"([A-Z][a-z]+ \d{1,2}, \d{4})",
-                    parent_text
-                )
-
-                if not match:
-                    continue
-
-                date_str = match.group(1)
-
-                release_date = None
-
-                try:
-
-                    release_date = (
-                        datetime.strptime(
-                            date_str,
-                            "%B %d, %Y"
-                        )
-                    )
-
-                except:
-
-                    try:
-
-                        release_date = (
-                            datetime.strptime(
-                                date_str,
-                                "%b %d, %Y"
-                            )
-                        )
-
-                    except:
-
-                        continue
-
-                # DATE FILTER
-
-                if release_date < today:
-                    continue
-
-                if release_date > limit_date:
-                    continue
-
-                full_link = (
-                    "https://www.dvdsreleasedates.com"
-                    + href
-                )
-
                 results.append({
 
                     "title": title,
@@ -304,7 +319,7 @@ def get_upcoming_digital():
 
                     "poster": poster_url,
 
-                    "link": full_link
+                    "link": movie_url
                 })
 
             except Exception as e:
@@ -317,14 +332,12 @@ def get_upcoming_digital():
 
                 continue
 
-        # SORT BY DATE
+        # SORT
 
         results.sort(
             key=lambda x:
             x["release_date"]
         )
-
-        # LIMIT RESULTS
 
         return results[:10]
 
