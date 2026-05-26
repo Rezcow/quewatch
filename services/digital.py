@@ -165,6 +165,8 @@ def get_upcoming_digital():
 
         seen = set()
 
+        import re
+
         for link_el in movie_links:
 
             try:
@@ -197,103 +199,83 @@ def get_upcoming_digital():
                 if not title:
                     continue
 
-                # TMDB FILTER
-                # REMOVE LOW QUALITY RESULTS
+                # TMDB DATA
 
                 tmdb_results = search_content(
                     title
                 )
 
-                if not tmdb_results:
-                    continue
+                rating = "?"
 
-                tmdb = tmdb_results[0]
+                poster_url = None
 
-                popularity = tmdb.get(
-                    "popularity",
-                    0
+                if tmdb_results:
+
+                    tmdb = tmdb_results[0]
+
+                    rating = round(
+                        tmdb.get(
+                            "vote_average",
+                            0
+                        ),
+                        1
+                    )
+
+                    poster = tmdb.get(
+                        "poster_path"
+                    )
+
+                    if poster:
+
+                        poster_url = (
+                            "https://image.tmdb.org/t/p/w500"
+                            + poster
+                        )
+
+                # FIND DATE
+
+                parent_text = (
+                    link_el.parent.get_text(
+                        " ",
+                        strip=True
+                    )
                 )
-
-                vote_count = tmdb.get(
-                    "vote_count",
-                    0
-                )
-
-                poster = tmdb.get(
-                    "poster_path"
-                )
-
-                rating = round(
-                    tmdb.get(
-                        "vote_average",
-                        0
-                    ),
-                    1
-                )
-
-                # FILTER BAD RESULTS
-
-                if popularity < 15:
-                    continue
-
-                if vote_count < 25:
-                    continue
-
-                if not poster:
-                    continue
-
-                # TRY TO FIND DATE
-
-                parent = link_el.parent
-
-                text = parent.get_text(
-                    " ",
-                    strip=True
-                )
-
-                release_date = None
-
-                possible_formats = [
-
-                    "%B %d, %Y",
-                    "%b %d, %Y"
-
-                ]
-
-                for word in text.split():
-
-                    pass
-
-                import re
 
                 match = re.search(
                     r"([A-Z][a-z]+ \d{1,2}, \d{4})",
-                    text
+                    parent_text
                 )
 
-                if match:
-
-                    date_str = match.group(1)
-
-                    for fmt in possible_formats:
-
-                        try:
-
-                            release_date = (
-                                datetime.strptime(
-                                    date_str,
-                                    fmt
-                                )
-                            )
-
-                            break
-
-                        except:
-
-                            continue
-
-                if not release_date:
+                if not match:
                     continue
+
+                date_str = match.group(1)
+
+                release_date = None
+
+                try:
+
+                    release_date = (
+                        datetime.strptime(
+                            date_str,
+                            "%B %d, %Y"
+                        )
+                    )
+
+                except:
+
+                    try:
+
+                        release_date = (
+                            datetime.strptime(
+                                date_str,
+                                "%b %d, %Y"
+                            )
+                        )
+
+                    except:
+
+                        continue
 
                 # DATE FILTER
 
@@ -306,11 +288,6 @@ def get_upcoming_digital():
                 full_link = (
                     "https://www.dvdsreleasedates.com"
                     + href
-                )
-
-                poster_url = (
-                    "https://image.tmdb.org/t/p/w500"
-                    + poster
                 )
 
                 results.append({
@@ -327,9 +304,7 @@ def get_upcoming_digital():
 
                     "poster": poster_url,
 
-                    "link": full_link,
-
-                    "popularity": popularity
+                    "link": full_link
                 })
 
             except Exception as e:
@@ -349,7 +324,7 @@ def get_upcoming_digital():
             x["release_date"]
         )
 
-        # LIMIT
+        # LIMIT RESULTS
 
         return results[:10]
 
